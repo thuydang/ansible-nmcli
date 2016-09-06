@@ -878,11 +878,74 @@ class Nmcli(object):
     def create_connection_bridge(self):
         cmd=[self.module.get_bin_path('nmcli', True)]
         # format for creating bridge interface
+        cmd.append('con')
+        cmd.append('add')
+        cmd.append('type')
+        cmd.append('bridge')
+        cmd.append('con-name')
+        if self.cname is not None:
+            cmd.append(self.cname)
+        elif self.ifname is not None:
+            cmd.append(self.ifname)
+        # ifname
+        cmd.append('ifname')
+        if self.ifname is not None:
+            cmd.append(self.ifname)
+        elif self.cname is not None:
+            cmd.append(self.cname)
+        #
+        if self.ip4 is not None:
+            cmd.append('ip4')
+            cmd.append(self.ip4)
+        if self.gw4 is not None:
+            cmd.append('gw4')
+            cmd.append(self.gw4)
+        if self.ip6 is not None:
+            cmd.append('ip6')
+            cmd.append(self.ip6)
+        if self.gw6 is not None:
+            cmd.append('gw6')
+            cmd.append(self.gw6)
+        if self.enabled is not None:
+            cmd.append('autoconnect')
+            cmd.append(self.enabled)
         return cmd
 
     def modify_connection_bridge(self):
         cmd=[self.module.get_bin_path('nmcli', True)]
         # format for modifying bridge interface
+        return cmd
+
+    def create_connection_bridge_slave(self):
+        cmd=[self.module.get_bin_path('nmcli', True)]
+        # format for creating bond-slave interface
+        cmd.append('connection')
+        cmd.append('add')
+        cmd.append('type')
+        cmd.append('bridge-slave')
+        cmd.append('con-name')
+        if self.cname is not None:
+            cmd.append(self.cname)
+        elif self.ifname is not None:
+            cmd.append(self.ifname)
+        cmd.append('ifname')
+        if self.ifname is not None:
+            cmd.append(self.ifname)
+        elif self.cname is not None:
+            cmd.append(self.cname)
+        cmd.append('master')
+        if self.cname is not None:
+            cmd.append(self.master)
+        return cmd
+
+    def modify_connection_bridge_slave(self):
+        cmd=[self.module.get_bin_path('nmcli', True)]
+        # format for modifying bond-slave interface
+        cmd.append('con')
+        cmd.append('mod')
+        cmd.append(self.cname)
+        cmd.append('connection.master')
+        cmd.append(self.master)
         return cmd
 
     def create_connection_vlan(self):
@@ -946,6 +1009,8 @@ class Nmcli(object):
                 return self.execute_command(cmd)
         elif self.type=='bridge':
             cmd=self.create_connection_bridge()
+        elif self.type=='bridge-slave':
+            cmd=self.create_connection_bridge_slave()
         elif self.type=='vlan':
             cmd=self.create_connection_vlan()
         return self.execute_command(cmd)
@@ -972,6 +1037,8 @@ class Nmcli(object):
             cmd=self.modify_connection_ethernet()
         elif self.type=='bridge':
             cmd=self.modify_connection_bridge()
+        elif self.type=='bridge-slave':
+            cmd=self.modify_connection_bridge_slave()
         elif self.type=='vlan':
             cmd=self.modify_connection_vlan()
         return self.execute_command(cmd)
