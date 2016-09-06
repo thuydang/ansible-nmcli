@@ -1,6 +1,0 @@
----
-# tasks file for kvm_host role
-
-- name: "KVM virtualization packages installation"
-  include: 'install.yml'
- 

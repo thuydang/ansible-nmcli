@@ -1,2 +1,0 @@
-[vi_nodes]
-localhost              ansible_connection=local
