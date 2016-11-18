@@ -461,12 +461,15 @@ class Nmcli(object):
         self.stp=module.params['stp']
         self.priority=module.params['priority']
         self.mode=module.params['mode']
+        self.owner=module.params['owner']
+        self.group=module.params['group']
         self.miimon=module.params['miimon']
         self.downdelay=module.params['downdelay']
         self.updelay=module.params['updelay']
         self.arp_interval=module.params['arp_interval']
         self.arp_ip_target=module.params['arp_ip_target']
         self.slavepriority=module.params['slavepriority']
+        self.slavetype=module.params['slavetype']
         self.forwarddelay=module.params['forwarddelay']
         self.hellotime=module.params['hellotime']
         self.maxage=module.params['maxage']
@@ -878,11 +881,74 @@ class Nmcli(object):
     def create_connection_bridge(self):
         cmd=[self.module.get_bin_path('nmcli', True)]
         # format for creating bridge interface
+        cmd.append('con')
+        cmd.append('add')
+        cmd.append('type')
+        cmd.append('bridge')
+        cmd.append('con-name')
+        if self.cname is not None:
+            cmd.append(self.cname)
+        elif self.ifname is not None:
+            cmd.append(self.ifname)
+        # ifname
+        cmd.append('ifname')
+        if self.ifname is not None:
+            cmd.append(self.ifname)
+        elif self.cname is not None:
+            cmd.append(self.cname)
+        #
+        if self.ip4 is not None:
+            cmd.append('ip4')
+            cmd.append(self.ip4)
+        if self.gw4 is not None:
+            cmd.append('gw4')
+            cmd.append(self.gw4)
+        if self.ip6 is not None:
+            cmd.append('ip6')
+            cmd.append(self.ip6)
+        if self.gw6 is not None:
+            cmd.append('gw6')
+            cmd.append(self.gw6)
+        if self.enabled is not None:
+            cmd.append('autoconnect')
+            cmd.append(self.enabled)
         return cmd
 
     def modify_connection_bridge(self):
         cmd=[self.module.get_bin_path('nmcli', True)]
         # format for modifying bridge interface
+        return cmd
+
+    def create_connection_bridge_slave(self):
+        cmd=[self.module.get_bin_path('nmcli', True)]
+        # format for creating bond-slave interface
+        cmd.append('connection')
+        cmd.append('add')
+        cmd.append('type')
+        cmd.append('bridge-slave')
+        cmd.append('con-name')
+        if self.cname is not None:
+            cmd.append(self.cname)
+        elif self.ifname is not None:
+            cmd.append(self.ifname)
+        cmd.append('ifname')
+        if self.ifname is not None:
+            cmd.append(self.ifname)
+        elif self.cname is not None:
+            cmd.append(self.cname)
+        cmd.append('master')
+        if self.cname is not None:
+            cmd.append(self.master)
+        return cmd
+
+    def modify_connection_bridge_slave(self):
+        cmd=[self.module.get_bin_path('nmcli', True)]
+        # format for modifying bond-slave interface
+        cmd.append('con')
+        cmd.append('mod')
+        cmd.append(self.cname)
+        cmd.append('connection.master')
+        cmd.append(self.master)
         return cmd
 
     def create_connection_vlan(self):
@@ -894,6 +960,45 @@ class Nmcli(object):
         cmd=[self.module.get_bin_path('nmcli', True)]
         # format for modifying ethernet interface
         return cmd
+
+    def create_connection_tun(self):
+        cmd=[self.module.get_bin_path('nmcli', True)]
+        # format for creating ethernet interface
+        cmd.append('connection')
+        cmd.append('add')
+        if self.slavetype is not None:
+            cmd.append('slave-type')
+            cmd.append(self.slavetype)
+            cmd.append('master')
+            cmd.append(self.master)
+        cmd.append('type')
+        cmd.append('tun')
+        cmd.append('con-name')
+        if self.cname is not None:
+            cmd.append(self.cname)
+        elif self.ifname is not None:
+            cmd.append(self.ifname)
+        cmd.append('ifname')
+        if self.ifname is not None:
+            cmd.append(self.ifname)
+        elif self.cname is not None:
+            cmd.append(self.cname)
+        cmd.append('mode')
+        if self.mode is not None:
+            cmd.append(self.mode)
+        if self.owner is not None:
+            cmd.append('owner')
+            cmd.append(self.owner)
+        if self.group is not None:
+            cmd.append('group')
+            cmd.append(self.group)
+        return cmd
+
+    def modify_connection_tun(self):
+        cmd=[self.module.get_bin_path('nmcli', True)]
+        # format for modifying ethernet interface
+        return cmd
+
 
     def create_connection(self):
         cmd=[]
@@ -946,8 +1051,12 @@ class Nmcli(object):
                 return self.execute_command(cmd)
         elif self.type=='bridge':
             cmd=self.create_connection_bridge()
+        elif self.type=='bridge-slave':
+            cmd=self.create_connection_bridge_slave()
         elif self.type=='vlan':
             cmd=self.create_connection_vlan()
+        elif self.type=='tun':
+            cmd=self.create_connection_tun()
         return self.execute_command(cmd)
 
     def remove_connection(self):
@@ -972,8 +1081,12 @@ class Nmcli(object):
             cmd=self.modify_connection_ethernet()
         elif self.type=='bridge':
             cmd=self.modify_connection_bridge()
+        elif self.type=='bridge-slave':
+            cmd=self.modify_connection_bridge_slave()
         elif self.type=='vlan':
             cmd=self.modify_connection_vlan()
+        elif self.type=='tun':
+            cmd=self.modify_connection_tun()
         return self.execute_command(cmd)
 
 
@@ -988,15 +1101,19 @@ def main():
             master=dict(required=False, default=None, type='str'),
             autoconnect=dict(required=False, default=None, choices=['yes', 'no'], type='str'),
             ifname=dict(required=False, default=None, type='str'),
-            type=dict(required=False, default=None, choices=['ethernet', 'team', 'team-slave', 'bond', 'bond-slave', 'bridge', 'vlan'], type='str'),
+            type=dict(required=False, default=None, choices=['ethernet', 'team', 'team-slave', 'bond', 'bond-slave', 'bridge', 'vlan', 'tun'], type='str'),
             ip4=dict(required=False, default=None, type='str'),
             gw4=dict(required=False, default=None, type='str'),
             dns4=dict(required=False, default=None, type='str'),
             ip6=dict(required=False, default=None, type='str'),
             gw6=dict(required=False, default=None, type='str'),
             dns6=dict(required=False, default=None, type='str'),
+            slavetype=dict(required=False, default=None, choices=['team', 'bond', 'bridge'], type='str'),
             # Bond Specific vars
-            mode=dict(require=False, default="balance-rr", choices=["balance-rr", "active-backup", "balance-xor", "broadcast", "802.3ad", "balance-tlb", "balance-alb"], type='str'),
+            mode=dict(require=False, default="balance-rr", choices=["balance-rr", "active-backup", "balance-xor", "broadcast", "802.3ad", "balance-tlb", "balance-alb", "tun", "tap"], type='str'),
+            # Tun Specific vars
+            owner=dict(require=False, default=None, type='str'),
+            group=dict(require=False, default=None, type='str'),
             miimon=dict(required=False, default=None, type='str'),
             downdelay=dict(required=False, default=None, type='str'),
             updelay=dict(required=False, default=None, type='str'),
@@ -1041,6 +1158,9 @@ def main():
     # check for issues
     if nmcli.cname is None:
         nmcli.module.fail_json(msg="You haven't specified a name for the connection")
+    # slave-type check
+    if nmcli.slavetype is not None and nmcli.master is None:
+        nmcli.module.fail_json(msg="You haven't specified a name for the master so we're not changing a thing")
     # team-slave checks
     if nmcli.type=='team-slave' and nmcli.master is None:
         nmcli.module.fail_json(msg="You haven't specified a name for the master so we're not changing a thing")
