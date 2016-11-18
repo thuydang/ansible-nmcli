@@ -999,7 +999,6 @@ class Nmcli(object):
         # format for modifying ethernet interface
         return cmd
 
-
     def create_connection(self):
         cmd=[]
         if self.type=='team':
